@@ -27,7 +27,6 @@ Sentence Transformer를 활용하여 문맥을 이해하며, LightFM을 통해 �
 김정호, 김해나, 문유하, 송민승
 
 <br>
-<br>
 
 # Mudo Meme Recommendation System : The Meme-Only Conversation Platform
 
