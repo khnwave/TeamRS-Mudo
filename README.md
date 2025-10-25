@@ -57,4 +57,4 @@ and LightFM for personalized modeling,
 we built a meme recommendation system that achieves both accuracy and personalization.
 
 ### 👥 Team Members
-Jeongho Kim, Haena Kim, Yooha Moon, Minseung Song
+Jeongho Kim, Hannah Kim, Yooha Moon, Minseung Song
