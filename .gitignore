@@ -15,3 +15,6 @@ frontend_diff.txt
 
 # Runtime logs
 all_data.jsonl
+
+# Local authentication tests
+test_supabase_login.py
