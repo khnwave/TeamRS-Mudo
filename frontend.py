@@ -1,3 +1,4 @@
+import re
 # MUZZAL — 초저지연 입력반응 + 이미지 LRU 캐시 + 안전 취소 + GPU 가속 (1글자부터 동작)
 # -----------------------------------------------------------------------------
 
@@ -149,33 +150,43 @@ def order_rooms(): return list(rooms.keys())
 init_rooms()
 
 # ===== 유틸 =====
+# MUZZAL_R2_FRONTEND_PATCH_V1
+# Images are always requested through FastAPI; FastAPI can fetch from private R2.
 def get_image_path(doc_id):
-    candidates = [
-        IMAGES_DIR / f"{doc_id}.png",
-        IMAGES_DIR / f"{doc_id}.jpg",
-        IMAGES_DIR / f"{doc_id}.jpeg",
-        IMAGES_DIR / f"P{doc_id}.png",
-        IMAGES_DIR / f"P{doc_id}.jpg",
-    ]
-    for path in candidates:
-        if path.exists():
-            return str(path)
-    return None
+    doc_id = str(doc_id)
+    if not re.fullmatch(r"P?[0-9]+", doc_id):
+        return None
+    return f"{API_BASE_URL}/images/{doc_id}"
+
 
 def image_to_base64_cached(path, size=(256,256)):
-    if not path: return None
-    key = (path, size[0])
-    v = b64_cache.get(key)
-    if v is not None: return v
-    try:
-        img = PILImage.open(path)
-        img.thumbnail(size, PILImage.LANCZOS)
-        buf = BytesIO(); img.save(buf, format="PNG")
-        v = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
-        b64_cache.put(key, v)
-        return v
-    except Exception:
+    if not path:
         return None
+    key = (path, size[0], size[1])
+    cached = b64_cache.get(key)
+    if cached is not None:
+        return cached
+    try:
+        if str(path).startswith(("http://", "https://")):
+            # Only fetch from our configured API, never from arbitrary input URLs.
+            if not str(path).startswith(API_BASE_URL + "/images/"):
+                return None
+            response = requests.get(path, timeout=20)
+            response.raise_for_status()
+            img = PILImage.open(BytesIO(response.content))
+        else:
+            img = PILImage.open(path)
+        with img:
+            img.thumbnail(size, PILImage.LANCZOS)
+            buf = BytesIO()
+            img.convert("RGB").save(buf, format="PNG")
+        value = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+        b64_cache.put(key, value)
+        return value
+    except Exception as exc:
+        print(f"[IMAGE API] Image load failed: {exc}", flush=True)
+        return None
+
 
 def k_time():
     # 한국 시간(Asia/Seoul) 기준 현재 시각
@@ -260,7 +271,7 @@ def search_and_recommend(query):
     for rank, res in enumerate(results, start=1):
         doc_id = str(res["doc_id"])
         item_id = _normalize_item_id(doc_id)
-        path = get_image_path(doc_id)
+        path = res.get("image_url") or get_image_path(doc_id)
         current_recommendations.append({
             "doc_id": doc_id,
             "item_id": item_id,
@@ -306,7 +317,7 @@ def select_image_for_preview(idx):
     doc_id = rec["doc_id"]
     item_id = rec["item_id"]
     p = rec['img_path'] or get_image_path(doc_id)
-    if p and os.path.exists(p):
+    if p:
         b64 = image_to_base64_cached(p, size=(400, 400))
         if b64:
             append_log("click", item_id, 1)
@@ -353,7 +364,7 @@ def on_saved_select(item_id):
     # 'P12345' -> '12345'
     doc_id = item_id[1:] if str(item_id).startswith("P") else str(item_id)
     p = get_image_path(doc_id)
-    if not p or not os.path.exists(p):
+    if not p:
         selected_image_data = {"b64": None, "item_id": None, "doc_id": None, "rank": None, "path": None}
         return (
             gr.update(value=f"<div style='color:#9ca3af'>이미지 경로 없음: {item_id}</div>"),

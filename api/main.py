@@ -2,16 +2,55 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from threading import Lock
 import re
+import os
+import boto3
+from functools import lru_cache
+from botocore.exceptions import ClientError, BotoCoreError
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
 from backend import HybridRecommender
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 IMAGES_DIR = BASE_DIR / "pictures"
+
+
+R2_ENDPOINT = os.getenv("R2_ENDPOINT")
+R2_BUCKET = os.getenv("R2_BUCKET", "muzzal-images")
+
+r2_client = (
+    boto3.client(
+        "s3",
+        endpoint_url=R2_ENDPOINT,
+        aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
+        region_name="auto",
+    )
+    if R2_ENDPOINT
+    else None
+)
+
+
+@lru_cache(maxsize=40000)
+def find_r2_key(doc_id: str):
+    if r2_client is None:
+        return None
+
+    for ext in (".jpg", ".png", ".jpeg", ".webp"):
+        key = f"{doc_id}{ext}"
+        try:
+            r2_client.head_object(Bucket=R2_BUCKET, Key=key)
+            return key
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code")
+            if code not in ("404", "NoSuchKey", "NotFound"):
+                raise
+
+    return None
+
 
 class RecommendRequest(BaseModel):
     query: str = Field(min_length=1, max_length=500)
@@ -66,7 +105,7 @@ async def recommend(data: RecommendRequest, request: Request):
     for rank, res in enumerate(results, 1):
         doc_id = str(res.doc_id)
         image_url = None
-        if res.image_path and Path(res.image_path).is_file():
+        if r2_client is not None or (res.image_path and Path(res.image_path).is_file()):
             image_url = str(request.url_for("get_image", doc_id=doc_id))
         items.append({
             "rank": rank,
@@ -88,11 +127,38 @@ async def reward(data: RewardRequest, request: Request):
     await run_in_threadpool(update)
     return {"status": "ok"}
 
+
 @app.get("/images/{doc_id}", name="get_image")
 def get_image(doc_id: str, request: Request):
     if not re.fullmatch(r"P?[0-9]+", doc_id):
         raise HTTPException(status_code=400, detail="잘못된 이미지 ID")
+
+    if r2_client is not None:
+        try:
+            key = find_r2_key(doc_id)
+            if key is None:
+                raise HTTPException(status_code=404, detail="R2 이미지가 없습니다")
+
+            obj = r2_client.get_object(Bucket=R2_BUCKET, Key=key)
+            try:
+                content = obj["Body"].read()
+            finally:
+                obj["Body"].close()
+
+            return Response(
+                content=content,
+                media_type=obj.get("ContentType") or "image/jpeg",
+                headers={"Cache-Control": "public, max-age=3600"},
+            )
+
+        except HTTPException:
+            raise
+        except (ClientError, BotoCoreError) as exc:
+            print(f"[R2 ERROR] {exc!r}", flush=True)
+            raise HTTPException(status_code=502, detail="R2 이미지 조회 실패") from exc
+
     path = request.app.state.engine._find_image_path(doc_id)
     if not path or not Path(path).is_file():
         raise HTTPException(status_code=404, detail="이미지를 찾을 수 없습니다")
+
     return FileResponse(path)
