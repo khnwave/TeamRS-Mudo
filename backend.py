@@ -63,11 +63,12 @@ class ThompsonSamplingBandit:
         return max(samples, key=samples.get)
 
     def update(self, alpha: float, reward: float) -> None:
-        stats = self.alpha_stats.setdefault(str(alpha), {"successes": 1, "failures": 1})
-        if reward > 0:
-            stats["successes"] += reward
-        else:
-            stats["failures"] += 1
+        reward = max(0.0, min(1.0, float(reward)))
+        stats = self.alpha_stats.setdefault(
+            str(alpha), {"successes": 1, "failures": 1}
+        )
+        stats["successes"] += reward
+        stats["failures"] += 1.0 - reward
         self._save()
 
 
