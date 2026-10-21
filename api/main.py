@@ -1,3 +1,5 @@
+from api.chat import router as chat_router
+from api.saved_images import router as saved_images_router
 from contextlib import asynccontextmanager
 from pathlib import Path
 from threading import Lock
@@ -73,6 +75,9 @@ async def lifespan(app: FastAPI):
     app.state.engine = None
 
 app = FastAPI(title="MUZZAL API", version="1.0.0", lifespan=lifespan)
+app.include_router(chat_router)
+
+app.include_router(saved_images_router)
 
 @app.get("/health")
 def health(request: Request):

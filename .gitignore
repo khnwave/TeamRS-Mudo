@@ -18,3 +18,16 @@ all_data.jsonl
 
 # Local authentication tests
 test_supabase_login.py
+test_muzzal_chat_ab.py
+
+# macOS files
+.DS_Store
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local test scripts
+test_muzzal_chat_ab.py
+test_supabase_login.py
