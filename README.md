@@ -140,53 +140,7 @@ flowchart TB
 
 ## 🧑‍💻 Getting Started
 
-> **개발 환경 기준:** macOS · Conda `muzzal` · Python 3.11  
-> 모델 파일과 R2/Supabase 접근 설정이 필요한 **개발용 실행 가이드**입니다. 저장소만 클론해 즉시 실행되는 공개 데모는 아직 제공되지 않습니다.
-
-**1) 개발 환경 활성화**
-
-```bash
-conda activate muzzal
-cd /path/to/TeamRS-Mudo
-```
-
-**2) 환경변수 설정**
-
-```bash
-export SUPABASE_URL="https://<project-ref>.supabase.co"
-# SUPABASE_PUBLISHABLE_KEY, R2_* 값은 로컬 보안 환경변수로 주입
-```
-
-`SUPABASE_URL`에는 `/rest/v1`을 붙이지 않습니다. Supabase Secret Key, R2 Secret Key, 테스트 비밀번호와 토큰을 저장소에 커밋하지 마세요.
-
-**3) 추천 모델 아티팩트 준비**
-
-다음 파일이 서버 실행 디렉터리에 있어야 합니다. 실제 파일은 크기 및 접근 권한상의 이유로 저장소에 없을 수 있습니다.
-
-```text
-faiss.index
-id_map.parquet
-lightfm.pkl
-alpha_config.json
-```
-
-**4) FastAPI 실행 (터미널 1)**
-
-```bash
-python -m uvicorn api.main:app --host 127.0.0.1 --port 8000
-```
-
-**5) Gradio 실행 (터미널 2)**
-
-```bash
-python frontend_supabase_fixed.py
-```
-
-- API 상태: `http://127.0.0.1:8000/health`
-- API 문서: `http://127.0.0.1:8000/docs`
-- Gradio: 실행 로그의 로컬 URL 확인
-
-> 🤖 **모델 로딩 참고:** Hugging Face에 온라인 연결이 제한된 개발 환경에서는 **모델 캐시가 완비된 경우에만** `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1` 방식으로 로딩할 수 있습니다. 배포 서버에는 모델 아티팩트를 별도로 준비해야 합니다.
+>TBH
 
 ## 🗺️ Roadmap
 
