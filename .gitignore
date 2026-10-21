@@ -1,0 +1,17 @@
+
+# Python
+__pycache__/
+*.pyc
+
+# Local backups and temporary files
+api/main_backup.py
+backend_before_bandit.py
+frontend_diff.txt
+
+# Credentials
+.env
+.env.*
+!.env.example
+
+# Runtime logs
+all_data.jsonl

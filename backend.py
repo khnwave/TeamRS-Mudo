@@ -235,7 +235,7 @@ class HybridRecommender:
         if not query or not query.strip():
             return []
 
-        alpha = 0.8
+        alpha = self.bandit.select()
         query_embedding = self._normalize_and_embed(query)
         # 확인용
         doc_ids, retrieval_raw = self._search_faiss(query_embedding, top_k=20)
