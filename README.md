@@ -16,6 +16,12 @@
 
 **[프로젝트 소개](#-project-overview) · [핵심 기능](#-key-features) · [아키텍처](#-system-architecture) · [개발 현황](#-development-status) · [로컬 실행](#-getting-started)**
 
+## 👥 Team RS
+
+**김정호 · 김해나 · 문유하 · 송민승**  
+Jeongho Kim · Hannah Kim · Yooha Moon · Minseung Song
+
+국민대학교 **D&A × X:AI × Wink — 2nd D&X:W Conference / AI Tech Track**
 </div>
 
 ---
@@ -154,12 +160,7 @@ flowchart TB
 - [ ] Next.js 웹 UI 구현
 - [ ] Docker·클라우드 배포 및 운영 모니터링
 
-## 👥 Team RS
 
-**김정호 · 김해나 · 문유하 · 송민승**  
-Jeongho Kim · Hannah Kim · Yooha Moon · Minseung Song
-
-국민대학교 **D&A × X:AI × Wink — 2nd D&X:W Conference / AI Tech Track**
 
 ---
 
